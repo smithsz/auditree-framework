@@ -70,6 +70,7 @@ class _BaseEvidence(object):
         self.category = category
         self.ttl = ttl
         self.description = description
+        self.locker = None
         self._agent = kwargs.get('agent') or ComplianceAgent()
         if self._agent.name and self.description:
             self.description = f'{self._agent.name}: {self.description}'
@@ -100,6 +101,7 @@ class _BaseEvidence(object):
             agent=evidence.agent,
             **kwargs
         )
+        new_evidence.locker = evidence.locker
         new_evidence.set_digest(evidence.digest)
         new_evidence.set_signature(evidence.signature)
         new_evidence.set_content(
@@ -624,7 +626,9 @@ class evidences(object):  # noqa: N801
             evidence_list.append(evidence.path)
         if hasattr(self, 'check'):
             for ev_path in evidence_list:
-                self.check.add_evidence_metadata(ev_path)
+                self.check.add_evidence_metadata(
+                    ev_path, evidence_locker=evidence.locker
+                )
         if not evidence:
             raise EvidenceNotFoundError('No evidence found!')
         return evidence
@@ -1017,5 +1021,7 @@ def _evidence_wrapper(self, from_evidences, func):
             ev = fe.ev_class.from_evidence(ev)
         evidences.append(ev)
     for evidence in evidences:
-        self.add_evidence_metadata(evidence.path)
+        self.add_evidence_metadata(
+            evidence.path, evidence_locker=evidence.locker
+        )
     return func(self, *evidences)
